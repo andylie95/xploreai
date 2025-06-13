@@ -1,9 +1,17 @@
+
+
 import streamlit as st
 import requests
 import os
 import uuid
 import datetime
 
+<head>
+        <!-- Other tags -->
+        <meta name="dicoding:email" content="andy.lie95@gmail.com">
+        <!-- Other tags -->
+    </head>
+    
 # === Azure Credentials ===
 AZURE_SPEECH_KEY = "BRRbY8UCM2yzJWOE6ASgfthbGU7RRS9cWmjtJVCP6iOPcBkmR8bQJQQJ99BFACqBBLyXJ3w3AAAYACOGJGiM"
 AZURE_SPEECH_REGION = "southeastasia"
