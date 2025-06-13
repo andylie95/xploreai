@@ -2,7 +2,6 @@ import streamlit as st
 import requests
 import os
 import uuid
-import tempfile
 import datetime
 
 # === Azure Credentials ===
@@ -45,79 +44,62 @@ def translate_text(text, target_lang="id"):
     except Exception as e:
         return f"❌ Translation error: {str(e)}"
 
-# === Initialize Chat Session State ===
+# === Initialize Chat State ===
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
-# === UI Setup ===
-st.set_page_config(page_title="Xplore AI Meeting Transcribe", page_icon="🧠")
-st.title("🧠 Xplore AI Meeting Transcribe")
-st.markdown("Real-time transcription and Indonesian translation for uploaded or recorded speech.")
+# === Page Setup ===
+st.set_page_config(page_title="Xplore AI Meeting Transcribe", page_icon="🎤")
+st.title("🎤 Xplore AI Meeting Transcribe")
+st.markdown("Upload your meeting audio and choose to transcribe it in English or both English + Indonesian.")
 
-mode = st.radio("Choose Input Mode:", ["Upload .wav", "Record from Mic"])
+# === File Upload ===
+uploaded_file = st.file_uploader("📤 Upload a `.wav` file (16kHz mono recommended)", type=["wav"])
 
-# === Upload Mode ===
-if mode == "Upload .wav":
-    uploaded_file = st.file_uploader("📤 Upload short .wav file", type=["wav"])
-    if uploaded_file:
-        st.audio(uploaded_file, format='audio/wav')
-        if st.button("➕ Transcribe Audio"):
-            with st.spinner("Transcribing..."):
-                temp_filename = f"temp_{uuid.uuid4()}.wav"
-                with open(temp_filename, "wb") as f:
-                    f.write(uploaded_file.read())
+if uploaded_file:
+    st.audio(uploaded_file, format='audio/wav')
 
-                transcript = transcribe_audio(temp_filename)
-                os.remove(temp_filename)
+    st.markdown("### 🔧 Choose Transcription Option")
 
-                st.session_state.chat_history.append({
-                    "transcript": transcript,
-                    "translation": "",
-                    "timestamp": datetime.datetime.now().strftime("%H:%M:%S")
-                })
+    transcribe_button = st.button("📝 Transcribe (Original Language)")
+    translate_button = st.button("🌐 Transcribe & Translate to Indonesian")
 
-# === Mic Mode ===
-elif mode == "Record from Mic":
-    audio_data = st.audio_recorder("🎙️ Record now", key="mic_rec")
-    if audio_data:
-        st.audio(audio_data, format="audio/wav")
-        if st.button("➕ Transcribe Mic Input"):
-            with st.spinner("Transcribing..."):
-                temp_audio_file = tempfile.NamedTemporaryFile(delete=False, suffix=".wav")
-                temp_audio_file.write(audio_data.getvalue())
-                temp_audio_file.close()
+    if transcribe_button or translate_button:
+        with st.spinner("Processing audio..."):
+            temp_filename = f"temp_{uuid.uuid4()}.wav"
+            with open(temp_filename, "wb") as f:
+                f.write(uploaded_file.read())
 
-                transcript = transcribe_audio(temp_audio_file.name)
-                os.remove(temp_audio_file.name)
+            transcript = transcribe_audio(temp_filename)
+            translation = translate_text(transcript) if translate_button else ""
+            os.remove(temp_filename)
 
-                st.session_state.chat_history.append({
-                    "transcript": transcript,
-                    "translation": "",
-                    "timestamp": datetime.datetime.now().strftime("%H:%M:%S")
-                })
+            st.session_state.chat_history.append({
+                "transcript": transcript,
+                "translation": translation,
+                "timestamp": datetime.datetime.now().strftime("%H:%M:%S")
+            })
 
-# === Translation Button ===
-if st.session_state.chat_history and st.button("🌐 Translate to Indonesian"):
-    for msg in st.session_state.chat_history:
-        if not msg["translation"]:
-            msg["translation"] = translate_text(msg["transcript"])
-
-# === Display Chat History ===
-st.divider()
-st.subheader("💬 Chat-style Transcript")
-
-for msg in st.session_state.chat_history:
-    with st.chat_message("user"):
-        st.markdown(f"**🕒 {msg['timestamp']}**")
-        st.markdown(f"**🗣️ English:** {msg['transcript']}")
-        if msg["translation"]:
-            st.markdown(f"**🌐 Indonesian:** {msg['translation']}")
-
-# === Export Chat Log ===
+# === Display Chat ===
 if st.session_state.chat_history:
+    st.divider()
+    st.subheader("💬 Transcript Log")
+
+    for msg in st.session_state.chat_history:
+        with st.chat_message("user"):
+            st.markdown(f"**🕒 {msg['timestamp']}**")
+            st.markdown(f"**🗣️ English:** {msg['transcript']}")
+            if msg["translation"]:
+                st.markdown(f"**🌐 Indonesian:** {msg['translation']}")
+
+    # === Export Option ===
+    st.divider()
     full_text = ""
     for msg in st.session_state.chat_history:
-        full_text += f"[{msg['timestamp']}]\nEN: {msg['transcript']}\nID: {msg['translation']}\n\n"
+        full_text += f"[{msg['timestamp']}]\nEN: {msg['transcript']}\n"
+        if msg["translation"]:
+            full_text += f"ID: {msg['translation']}\n"
+        full_text += "\n"
 
     filename = f"xploreai_transcript_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
-    st.download_button("📄 Download Full Chat Log", full_text, file_name=filename, mime="text/plain")
+    st.download_button("📄 Download Transcript", full_text, file_name=filename, mime="text/plain")
