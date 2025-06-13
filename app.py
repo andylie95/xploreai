@@ -58,7 +58,7 @@ Unggah rekaman rapat Anda dan pilih format hasil yang diinginkan.
 
 # === File Upload ===
 uploaded_file = st.file_uploader(
-    "📤 Upload a `.wav` file (16kHz mono recommended) / Unggah file `.wav` (disarankan 16kHz mono)",
+    "📤 Upload a `.wav` file (max 30 minutes, 16kHz mono recommended) / Unggah file `.wav` (max 30 menit, disarankan 16kHz mono)",
     type=["wav"]
 )
 
