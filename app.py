@@ -23,7 +23,7 @@ def transcribe_audio(file_path):
         with open(file_path, "rb") as audio_file:
             response = requests.post(endpoint, headers=headers, params=params, data=audio_file)
             result = response.json()
-            return result.get("DisplayText", "❌ Transcription failed or unclear audio.")
+            return result.get("DisplayText", "❌ Transcription failed or unclear audio. / Transkripsi gagal atau audio tidak jelas.")
     except Exception as e:
         return f"❌ Transcription error: {str(e)}"
 
@@ -44,28 +44,37 @@ def translate_text(text, target_lang="id"):
     except Exception as e:
         return f"❌ Translation error: {str(e)}"
 
-# === Initialize Chat State ===
+# === Initialize Session State ===
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
 # === Page Setup ===
 st.set_page_config(page_title="Xplore AI Meeting Transcribe", page_icon="🎤")
 st.title("🎤 Xplore AI Meeting Transcribe")
-st.markdown("Upload your meeting audio and choose to transcribe it in English or both English + Indonesian.")
+st.markdown("""
+**Upload your meeting audio and choose your output format.**  
+Unggah rekaman rapat Anda dan pilih format hasil yang diinginkan.
+""")
 
 # === File Upload ===
-uploaded_file = st.file_uploader("📤 Upload a `.wav` file (16kHz mono recommended)", type=["wav"])
+uploaded_file = st.file_uploader(
+    "📤 Upload a `.wav` file (16kHz mono recommended) / Unggah file `.wav` (disarankan 16kHz mono)",
+    type=["wav"]
+)
 
 if uploaded_file:
     st.audio(uploaded_file, format='audio/wav')
 
-    st.markdown("### 🔧 Choose Transcription Option")
+    st.markdown("### 🔧 Choose Option / Pilih Opsi")
 
-    transcribe_button = st.button("📝 Transcribe (Original Language)")
-    translate_button = st.button("🌐 Transcribe & Translate to Indonesian")
+    col1, col2 = st.columns(2)
+    with col1:
+        transcribe_button = st.button("📝 Transcribe (English Only) / Hanya Bahasa Inggris")
+    with col2:
+        translate_button = st.button("🌐 Transcribe + Translate to Indonesian / Terjemahkan ke Bahasa Indonesia")
 
     if transcribe_button or translate_button:
-        with st.spinner("Processing audio..."):
+        with st.spinner("⏳ Processing... / Sedang diproses..."):
             temp_filename = f"temp_{uuid.uuid4()}.wav"
             with open(temp_filename, "wb") as f:
                 f.write(uploaded_file.read())
@@ -80,10 +89,10 @@ if uploaded_file:
                 "timestamp": datetime.datetime.now().strftime("%H:%M:%S")
             })
 
-# === Display Chat ===
+# === Display Chat History ===
 if st.session_state.chat_history:
     st.divider()
-    st.subheader("💬 Transcript Log")
+    st.subheader("💬 Transcript Log / Riwayat Transkrip")
 
     for msg in st.session_state.chat_history:
         with st.chat_message("user"):
@@ -102,4 +111,9 @@ if st.session_state.chat_history:
         full_text += "\n"
 
     filename = f"xploreai_transcript_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
-    st.download_button("📄 Download Transcript", full_text, file_name=filename, mime="text/plain")
+    st.download_button(
+        "📄 Download Transcript as .txt / Unduh Hasil sebagai .txt",
+        full_text,
+        file_name=filename,
+        mime="text/plain"
+    )
